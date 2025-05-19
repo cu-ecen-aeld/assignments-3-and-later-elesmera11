@@ -15,7 +15,7 @@ fi
 filesdir=$1
 searchstr=$2
 
-# search for any objects that are files (type f) in the filesdir provided, and
+# search for any objects that are files (type f) in the filesdir provided, and 
 # print the filename, then count the number of lines(filenames) printed with wc -l
 echo "The number of files are $(find $filesdir/ -name "*.*" -type f -print | wc -l) "
 
