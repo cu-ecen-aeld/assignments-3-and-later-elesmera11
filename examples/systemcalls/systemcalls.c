@@ -1,4 +1,9 @@
 #include "systemcalls.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <stdio.h>
+#include <fcntl.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -9,6 +14,10 @@
 */
 bool do_system(const char *cmd)
 {
+
+    if (cmd == NULL) return false;
+    int ret = system(cmd);
+    if (ret < 0) return false;
 
 /*
  * TODO  add your code here
@@ -49,6 +58,36 @@ bool do_exec(int count, ...)
     // and may be removed
     command[count] = command[count];
 
+    int child_pid = fork();
+    switch(child_pid) {
+    case -1: 
+        //perror("fork failed");
+        exit(EXIT_FAILURE); // Exit if fork fails
+    case 0: // Child process
+        if(execv(command[0], &command[0]) == -1) {
+            //perror("execv failed");
+            exit(EXIT_FAILURE); // Exit child process if execv fails
+        } else {
+            exit(EXIT_SUCCESS); // Exit child process if execv succeeds
+        }
+    default: // parent process
+        int child_status;
+        // Wait for the child process to finish
+        wait(&child_status);
+        if (WIFEXITED(child_status)) {
+            int exit_status = WEXITSTATUS(child_status);
+            if (exit_status != EXIT_SUCCESS) {
+                printf("Command failed with exit status %d\n", exit_status);
+                return false; // Command failed
+            }
+        } else {
+            printf("Command terminated abnormally\n");
+            return false; // Command terminated abnormally
+        }
+        break;
+    }
+    
+
 /*
  * TODO:
  *   Execute a system command by calling fork, execv(),
@@ -85,6 +124,45 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = command[count];
 
 
+
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if(fd < 0) {
+        perror("open failed");
+        return false; // Exit if open fails
+    }
+    int child_pid = fork();
+    switch(child_pid) {
+    case -1: 
+        perror("fork failed");
+        exit(EXIT_FAILURE); // Exit if fork fails
+    case 0: // Child process
+        if (dup2(fd, STDOUT_FILENO) < 0) {
+            perror("dup2 failed");
+            exit(EXIT_FAILURE); // Exit child process if dup2 fails
+        }
+        close(fd); // Close the file descriptor in the child process
+        if(execv(command[0], &command[0]) == -1) {
+            perror("execv failed");
+            exit(EXIT_FAILURE); // Exit child process if execv fails
+        } else {
+            exit(EXIT_SUCCESS); // Exit child process if execv succeeds
+        }
+    default: // parent process
+        int child_status;
+        // Wait for the child process to finish
+        wait(&child_status);
+        if (WIFEXITED(child_status)) {
+            int exit_status = WEXITSTATUS(child_status);
+            if (exit_status != EXIT_SUCCESS) {
+                printf("Command failed with exit status %d\n", exit_status);
+                return false; // Command failed
+            }
+        } else {
+            printf("Command terminated abnormally\n");
+            return false; // Command terminated abnormally
+        }
+        break;
+    }
 /*
  * TODO
  *   Call execv, but first using https://stackoverflow.com/a/13784315/1446624 as a refernce,
