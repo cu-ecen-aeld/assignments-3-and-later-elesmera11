@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 # if the number of arguments is not 2, print usage and exit
 if [ $# -ne 2 ]; then
